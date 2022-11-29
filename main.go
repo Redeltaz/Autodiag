@@ -1,9 +1,11 @@
 package main
 
 import (
-    "fmt"
-    "os"
-    "regexp"
+	"fmt"
+	"log"
+	"os"
+	"regexp"
+	"strings"
 )
 
 var validFulLArgs = [2]string{"target", "key"}
@@ -12,7 +14,6 @@ var validShortArgs = [2]string{"t", "k"}
 type argument struct {
     name string
     value string
-    type string
 }
 
 func main() {
@@ -29,17 +30,52 @@ func parseArgs(argPtr *[]string) {
     //remove useless first argument
     args = append(args[:0], args[0+1:]...)
 
-    for index, value := range(args) {
+    for _, value := range(args) {
+        var parsedKey string
+
         if string(value[0]) == "-" && string(value[1]) != "-" {
-            parsedValue := regexPattern.FindStringSubmatch(value)[0]
-            
-            newArg := argument{name: parsedValue, value: args[index + 1], type: "short"}
-            fmt.Println(newArg)
+            parsedKey = regexPattern.FindStringSubmatch(value)[0]
+
+            switch parsedKey {
+            case "t":
+                parsedKey = "target"
+            case "k":
+                parsedKey = "key"
+            default:
+                errorMsg := "Unknow argument -" + parsedKey
+                sendError(&errorMsg)
+            }
         } else if string(value[0]) + string(value[1]) == "--" {
-            fmt.Println(value, "full")
+            fmt.Println(len(value))
+            os.Exit(0)
+            if len(value) > 2 && string(value[1]) == "-" {
+                errorMsg := "Argument format invalid "
+                sendError(&errorMsg)
+                fmt.Println("wtf")
+            }
+
+            parsedKey = regexPattern.FindStringSubmatch(value)[0]
+
+            isParameterValid := false
+            for _, v := range(validFulLArgs) {
+                if v == parsedKey {
+                    isParameterValid = true
+                }
+            }
+            if !isParameterValid {
+                errorMsg := "Unknow argument -" + parsedKey
+                sendError(&errorMsg)
+            }
         }
-        //fmt.Println(index)
+
+        //fmt.Println(parsedKey)
     }
 
     //fmt.Println(args)
+}
+
+func sendError(msgPtr *string) {
+    log.Fatal(*msgPtr)
+    //fmt.Println(*msgPtr)
+    //os.Exit(1)
 }
