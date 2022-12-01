@@ -1,10 +1,11 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "os"
-    "regexp"
+	"fmt"
+	"os"
+	"regexp"
+
+	"github.com/Redeltaz/Autodiag/pkg/logging"
 )
 
 var validFullArgs = [2]string{"target", "key"}
@@ -63,7 +64,7 @@ func parseArgs(cliArgPtr *[]string, args *[]argument) {
 
             if !isArgKeyValid {
                 errorMsg := "Unknow argument " + value
-                sendError(&errorMsg)
+                logging.SendError(&errorMsg)
             }
 
             argValue := cliArgs[index + 1]
@@ -74,6 +75,3 @@ func parseArgs(cliArgPtr *[]string, args *[]argument) {
     }
 }
 
-func sendError(msgPtr *string) {
-    log.Fatal(*msgPtr)
-}
