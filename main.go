@@ -1,15 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"regexp"
-	"strings"
+    "fmt"
+    "log"
+    "os"
+    "regexp"
 )
 
-var validFulLArgs = [2]string{"target", "key"}
-var validShortArgs = [2]string{"t", "k"}
+var validFullArgs = [2]string{"target", "key"}
+var validShortArgs = map[string]string{"t": "target", "k": "key"}
 
 type argument struct {
     name string
@@ -17,65 +16,64 @@ type argument struct {
 }
 
 func main() {
-    arguments := os.Args
+    cliArguments := os.Args
+    var arguments []argument
 
-    parseArgs(&arguments)
+    parseArgs(&cliArguments, &arguments)
+
+    fmt.Println(arguments)
 }
 
-func parseArgs(argPtr *[]string) {
-    args := *argPtr
-    //parsedArgs = [...]argument{}
-    regexPattern := regexp.MustCompile(`[^-]+`)
+func parseArgs(cliArgPtr *[]string, args *[]argument) {
+    cliArgs := *cliArgPtr
+
+    regexKeyPattern := regexp.MustCompile(`[-]+`)
 
     //remove useless first argument
-    args = append(args[:0], args[0+1:]...)
+    cliArgs = append(cliArgs[:0], cliArgs[0+1:]...)
 
-    for _, value := range(args) {
-        var parsedKey string
+    for index, value := range(cliArgs) {
+        parsedKey := regexKeyPattern.FindStringSubmatch(value)
 
-        if string(value[0]) == "-" && string(value[1]) != "-" {
-            parsedKey = regexPattern.FindStringSubmatch(value)[0]
+        //it's an argument key
+        if len(parsedKey) > 0 {
+            var argKey string
+            isArgKeyValid := false
 
-            switch parsedKey {
-            case "t":
-                parsedKey = "target"
-            case "k":
-                parsedKey = "key"
-            default:
-                errorMsg := "Unknow argument -" + parsedKey
-                sendError(&errorMsg)
-            }
-        } else if string(value[0]) + string(value[1]) == "--" {
-            fmt.Println(len(value))
-            os.Exit(0)
-            if len(value) > 2 && string(value[1]) == "-" {
-                errorMsg := "Argument format invalid "
-                sendError(&errorMsg)
-                fmt.Println("wtf")
-            }
+            //check how many dash there is before the argument key
+            if len(parsedKey[0]) == 1 {
+                argKey = regexKeyPattern.Split(value, -1)[1]
 
-            parsedKey = regexPattern.FindStringSubmatch(value)[0]
+                //check and assign short argument key to it long version
+                for k, v := range(validShortArgs) {
+                    if k == argKey {
+                        isArgKeyValid = true
+                        argKey = v
+                    }
+                }
+            } else if len(parsedKey[0]) == 2 {
+                argKey = regexKeyPattern.Split(value, -1)[1]
 
-            isParameterValid := false
-            for _, v := range(validFulLArgs) {
-                if v == parsedKey {
-                    isParameterValid = true
+                for _, v := range(validFullArgs) {
+                    if v == argKey {
+                        isArgKeyValid = true
+                    }
                 }
             }
-            if !isParameterValid {
-                errorMsg := "Unknow argument -" + parsedKey
+
+            if !isArgKeyValid {
+                errorMsg := "Unknow argument " + value
                 sendError(&errorMsg)
             }
+
+            argValue := cliArgs[index + 1]
+
+            newArg := argument{name: argKey, value: argValue}
+            *args = append(*args, newArg)
         }
-
-        //fmt.Println(parsedKey)
     }
-
-    //fmt.Println(args)
 }
 
 func sendError(msgPtr *string) {
     log.Fatal(*msgPtr)
-    //fmt.Println(*msgPtr)
-    //os.Exit(1)
 }
